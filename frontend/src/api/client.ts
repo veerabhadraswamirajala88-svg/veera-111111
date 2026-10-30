@@ -272,7 +272,8 @@ class ApiClient {
         method: 'POST',
       });
     } catch {
-      return { recommendations: localStore.generateFreshRecommendations() };
+      const recs = await localStore.generateFreshRecommendations();
+      return { recommendations: recs };
     }
   }
 
@@ -341,7 +342,7 @@ class ApiClient {
         body: JSON.stringify({ message, conversation_id: conversationId }),
       });
     } catch {
-      return localStore.sendChatMessage(message, conversationId);
+      return await localStore.sendChatMessage(message, conversationId);
     }
   }
 

@@ -30,6 +30,34 @@ interface RawAiRecommendation {
   difficulty_level?: string;
 }
 
+const CANDIDATE_GEMINI_MODELS = [
+  'gemini-2.5-flash-lite',
+  'gemini-flash-lite-latest',
+  'gemini-3.5-flash-lite',
+  'gemini-2.5-flash',
+];
+
+async function callGeminiWithModelFallback(params: any): Promise<any> {
+  let lastErr: any = null;
+  for (const model of CANDIDATE_GEMINI_MODELS) {
+    try {
+      return await geminiClient!.models.generateContent({
+        ...params,
+        model,
+      });
+    } catch (err: any) {
+      lastErr = err;
+      const msg = err?.message || String(err);
+      if (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('503')) {
+        console.warn(`[Gemini SDK] Model ${model} quota or capacity limit. Trying next candidate...`);
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr || new Error('All candidate models exhausted');
+}
+
 export async function generateRecommendationsWithGemini(
   profile: Profile,
   preferences: UserPreferences,
@@ -89,8 +117,7 @@ Respond ONLY with a valid JSON array of objects conforming to this schema:
   }
 ]`;
 
-    const response = await geminiClient.models.generateContent({
-      model: 'gemini-2.5-flash',
+    const response = await callGeminiWithModelFallback({
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -474,8 +501,7 @@ GUIDELINES:
       { role: 'user', parts: [{ text: `${systemPrompt}\n\nUser request: ${userMessage}` }] },
     ];
 
-    const response = await geminiClient.models.generateContent({
-      model: 'gemini-2.5-flash',
+    const response = await callGeminiWithModelFallback({
       contents: `${systemPrompt}\n\nConversation Context:
 ${history.slice(-4).map((h) => `${h.role}: ${h.content}`).join('\n')}
 

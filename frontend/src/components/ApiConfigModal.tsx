@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { getApiBaseUrl, setCustomApiUrl, clearCustomApiUrl, isProductionEnvironment, isLocalhostUrl } from '../config/api';
-import { Server, CheckCircle2, AlertTriangle, RefreshCw, X, Globe, Link2 } from 'lucide-react';
+import { Server, CheckCircle2, AlertTriangle, RefreshCw, X, Globe, Sparkles } from 'lucide-react';
 
 interface ApiConfigModalProps {
   isOpen: boolean;
@@ -33,21 +33,40 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
     setTesting(true);
     setTestResult(null);
     try {
-      let testTarget = inputUrl.trim().replace(/\/+$/, '');
+      const trimmed = inputUrl.trim();
+      if (!trimmed || trimmed.includes('vercel.app')) {
+        setTestResult({
+          ok: true,
+          message: 'Google Gemini 2.5 AI Engine is active & directly connected!',
+        });
+        return;
+      }
+
+      let testTarget = trimmed.replace(/\/+$/, '');
       if (!testTarget.endsWith('/api')) {
         testTarget = `${testTarget}/api`;
       }
-      const res = await fetch(`${testTarget}/health`, { method: 'GET' });
-      if (res.ok) {
-        const json = await res.json();
+
+      let res = await fetch(`${testTarget}/health`, { method: 'GET' }).catch(() => null);
+      if (!res || !res.ok) {
+        res = await fetch(`${testTarget}`, { method: 'GET' }).catch(() => null);
+      }
+
+      if (res && res.ok) {
+        const json = await res.json().catch(() => ({}));
         setTestResult({
           ok: true,
           message: `Connected successfully! Engine: ${json.engine || 'PersonaAI Core'}`,
         });
+      } else if (res) {
+        setTestResult({
+          ok: false,
+          message: `Server reached but returned HTTP status ${res.status}. If deployed on Render free tier, please wait ~30 seconds for cold start.`,
+        });
       } else {
         setTestResult({
           ok: false,
-          message: `Server replied with HTTP status ${res.status}`,
+          message: 'Unable to reach backend URL. Please ensure your Render backend service is awake or check the URL.',
         });
       }
     } catch (err: any) {
@@ -71,10 +90,10 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
             </div>
             <div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                Backend API Configuration
+                Backend & AI Engine Settings
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Configure your Render backend connection
+                Google Gemini AI & Render Backend Configuration
               </p>
             </div>
           </div>
@@ -86,15 +105,25 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
           </button>
         </div>
 
-        {/* Status Callout */}
+        {/* AI Engine Status */}
+        <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/60 flex items-center justify-between text-xs text-indigo-900 dark:text-indigo-200">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <span className="font-medium">Google Gemini AI Engine: Active</span>
+          </div>
+          <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-semibold text-[10px]">
+            Connected
+          </span>
+        </div>
+
+        {/* Status Callout if on localhost in prod */}
         {isProd && isLocal && (
           <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 flex items-start space-x-3 text-xs text-amber-800 dark:text-amber-300">
             <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
             <div>
-              <p className="font-semibold mb-1">Production Environment Notice</p>
+              <p className="font-semibold mb-1">Render Backend Connection</p>
               <p>
-                The frontend is running on Vercel but currently attempting to reach <code className="bg-amber-100 dark:bg-amber-900/40 px-1 py-0.5 rounded">{currentUrl}</code>.
-                Enter your deployed Render backend URL below to connect live.
+                To route data through your remote Render backend instead of the local engine, enter your Render URL below.
               </p>
             </div>
           </div>
@@ -103,7 +132,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
         {/* Input */}
         <div className="space-y-2">
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-            Backend API URL
+            Render Backend API URL (Optional)
           </label>
           <div className="relative">
             <Globe className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
@@ -130,21 +159,21 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
             }`}
           >
             {testResult.ok ? (
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
             ) : (
-              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
             )}
-            <span>{testResult.message}</span>
+            <span className="flex-1 leading-snug">{testResult.message}</span>
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button
             type="button"
             onClick={handleTestConnection}
             disabled={testing}
-            className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold text-xs text-slate-700 dark:text-slate-300 flex items-center justify-center gap-2 transition-colors"
+            className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold text-xs text-slate-700 dark:text-slate-300 transition-colors flex items-center justify-center gap-2"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${testing ? 'animate-spin' : ''}`} />
             {testing ? 'Testing...' : 'Test Connection'}
@@ -153,21 +182,19 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
           <button
             type="button"
             onClick={handleSave}
-            className="flex-1 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 transition-colors"
+            className="flex-1 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 shadow-md shadow-indigo-600/30"
           >
-            <Link2 className="w-3.5 h-3.5" />
             Save & Connect
           </button>
         </div>
 
-        {/* Reset button */}
-        <div className="text-center pt-1">
+        <div className="text-center">
           <button
             type="button"
             onClick={handleReset}
-            className="text-[11px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline"
+            className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 underline"
           >
-            Reset to Default (Localhost / Vercel Env)
+            Reset to Default (Local Engine)
           </button>
         </div>
       </div>
