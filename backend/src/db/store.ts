@@ -80,6 +80,11 @@ class LocalStore {
     return this.data.profiles.find((p) => p.id === id) || null;
   }
 
+  findProfileByEmail(email: string): Profile | null {
+    const normalized = email.toLowerCase().trim();
+    return this.data.profiles.find((p) => (p.email?.toLowerCase().trim() === normalized)) || null;
+  }
+
   upsertProfile(profile: Profile): Profile {
     const idx = this.data.profiles.findIndex((p) => p.id === profile.id);
     if (idx >= 0) {

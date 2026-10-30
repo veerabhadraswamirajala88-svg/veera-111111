@@ -25,6 +25,7 @@ export type FeedbackType = (typeof FEEDBACK_TYPES)[number];
 
 export interface Profile {
   id: string;
+  email?: string | null;
   full_name: string;
   location?: string | null;
   age_range?: string | null;

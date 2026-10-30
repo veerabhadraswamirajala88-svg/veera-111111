@@ -34,26 +34,33 @@ class ApiClient {
     const url = `${API_BASE}${endpoint}`;
     const headers = { ...this.getHeaders(), ...(options.headers as Record<string, string>) };
 
-    const response = await fetch(url, { ...options, headers });
+    try {
+      const response = await fetch(url, { ...options, headers });
 
-    if (!response.ok) {
-      let errorMessage = 'An error occurred';
-      try {
-        const errorJson = await response.json();
-        errorMessage = errorJson.error || errorMessage;
-      } catch {
-        errorMessage = `HTTP error ${response.status}: ${response.statusText}`;
+      if (!response.ok) {
+        let errorMessage = 'An error occurred';
+        try {
+          const errorJson = await response.json();
+          errorMessage = errorJson.error || errorMessage;
+        } catch {
+          errorMessage = `HTTP error ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
-      throw new Error(errorMessage);
-    }
 
-    // If attachment/download
-    const disposition = response.headers.get('content-disposition');
-    if (disposition && disposition.includes('attachment')) {
-      return response.blob() as unknown as T;
-    }
+      // If attachment/download
+      const disposition = response.headers.get('content-disposition');
+      if (disposition && disposition.includes('attachment')) {
+        return response.blob() as unknown as T;
+      }
 
-    return response.json();
+      return response.json();
+    } catch (err: any) {
+      if (err.name === 'TypeError' || err.message?.includes('fetch') || err.message?.includes('Failed to fetch')) {
+        throw new Error(`Cannot connect to Backend API at ${API_BASE}. Please ensure the backend server is running ('npm start').`);
+      }
+      throw err;
+    }
   }
 
   // Auth

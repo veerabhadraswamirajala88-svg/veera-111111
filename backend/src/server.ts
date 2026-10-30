@@ -26,6 +26,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
+app.get('/', (req: Request, res: Response) => {
+  res.json({
+    status: 'healthy',
+    service: 'PersonaAI Backend API',
+    health: '/api/health',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({
     status: 'healthy',
@@ -48,10 +58,12 @@ app.use((err: CustomError, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-const PORT = ENV.PORT;
-app.listen(PORT, () => {
-  console.log(`🚀 PersonaAI Backend Server running on http://localhost:${PORT}`);
-  console.log(`📡 Health Check available at http://localhost:${PORT}/api/health`);
+const PORT = Number(process.env.PORT) || ENV.PORT || 5000;
+const HOST = '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 PersonaAI Backend Server running on http://${HOST}:${PORT}`);
+  console.log(`📡 Health Check available at http://${HOST}:${PORT}/api/health`);
   console.log(`🤖 Gemini AI status: ${ENV.isGeminiConfigured() ? 'Connected' : 'Intelligent Algorithmic Engine Ready'}`);
   console.log(`🗄️ Supabase status: ${ENV.isSupabaseConfigured() ? 'Connected' : 'Local Persistent Store Ready'}`);
 });
