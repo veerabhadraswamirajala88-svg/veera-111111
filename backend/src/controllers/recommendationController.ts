@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { localDb } from '../db/store.js';
+import { localDb, supabase } from '../db/store.js';
 import { FeedbackSchema } from '../types/index.js';
 import { generateRecommendationsWithGemini } from '../services/geminiService.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -178,6 +178,16 @@ export async function submitFeedback(req: Request, res: Response): Promise<Respo
       feedback_type: validated.feedback_type,
       created_at: new Date().toISOString(),
     });
+
+    if (supabase) {
+      Promise.resolve(
+        supabase.from('recommendation_feedback').upsert({
+          user_id: userId,
+          recommendation_id: recommendationId,
+          feedback_type: validated.feedback_type,
+        })
+      ).catch(() => {});
+    }
 
     // Record activity
     localDb.recordActivity({

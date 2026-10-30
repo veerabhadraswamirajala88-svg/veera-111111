@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { localDb } from '../db/store.js';
+import { localDb, supabase } from '../db/store.js';
 import { OnboardingSchema, UpdateProfileSchema } from '../types/index.js';
 import { generateRecommendationsWithGemini } from '../services/geminiService.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -106,6 +106,38 @@ export async function submitOnboarding(req: Request, res: Response): Promise<Res
       recommendation_frequency: validated.recommendation_frequency || 'daily',
       updated_at: new Date().toISOString(),
     });
+
+    // Dual-write to Supabase if connected
+    if (supabase) {
+      Promise.resolve(
+        supabase.from('profiles').upsert({
+          id: userId,
+          full_name: validated.full_name,
+          location: validated.location || null,
+          age_range: validated.age_range || null,
+          bio: validated.bio || null,
+          onboarding_completed: true,
+          personalization_enabled: true,
+          updated_at: new Date().toISOString(),
+        })
+      ).catch(() => {});
+
+      Promise.resolve(
+        supabase.from('user_preferences').upsert({
+          user_id: userId,
+          interests: validated.interests,
+          categories: validated.categories,
+          goals: validated.goals,
+          disliked_categories: validated.disliked_categories || [],
+          preferred_content_types: validated.preferred_content_types || [],
+          budget_min: validated.budget_min,
+          budget_max: validated.budget_max || null,
+          currency: validated.currency || 'INR',
+          recommendation_frequency: validated.recommendation_frequency || 'daily',
+          updated_at: new Date().toISOString(),
+        })
+      ).catch(() => {});
+    }
 
     // 3. Clear any stale initial recommendations and generate fresh ones
     localDb.deleteRecommendationsForUser(userId);

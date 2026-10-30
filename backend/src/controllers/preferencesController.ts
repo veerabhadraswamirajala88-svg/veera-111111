@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { localDb } from '../db/store.js';
+import { localDb, supabase } from '../db/store.js';
 import { UpdatePreferencesSchema } from '../types/index.js';
 import { generateRecommendationsWithGemini } from '../services/geminiService.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -52,6 +52,24 @@ export async function updatePreferences(req: Request, res: Response): Promise<Re
       recommendation_frequency: validated.recommendation_frequency || existing?.recommendation_frequency || 'daily',
       updated_at: new Date().toISOString(),
     });
+
+    if (supabase) {
+      Promise.resolve(
+        supabase.from('user_preferences').upsert({
+          user_id: userId,
+          interests: updated.interests,
+          categories: updated.categories,
+          goals: updated.goals,
+          disliked_categories: updated.disliked_categories,
+          preferred_content_types: updated.preferred_content_types,
+          budget_min: updated.budget_min,
+          budget_max: updated.budget_max,
+          currency: updated.currency,
+          recommendation_frequency: updated.recommendation_frequency,
+          updated_at: new Date().toISOString(),
+        })
+      ).catch(() => {});
+    }
 
     // Dynamic regeneration of recommendations
     const profile = localDb.getProfile(userId);

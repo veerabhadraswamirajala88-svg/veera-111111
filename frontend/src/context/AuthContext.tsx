@@ -139,14 +139,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         await fetchCurrentSession();
       } catch (err: any) {
-        const isOffline =
+        const isOfflineOrRateLimit =
           err.message?.includes('Cannot connect') ||
           err.message?.includes('Failed to fetch') ||
-          err.message?.includes('fetch failed');
-        if (isOffline) {
-          const offlineId = 'offline-' + email.replace(/[^a-zA-Z0-9]/g, '_');
+          err.message?.includes('fetch failed') ||
+          err.message?.includes('rate limit') ||
+          err.message?.includes('exceeded');
+        if (isOfflineOrRateLimit) {
+          console.warn('Backend connection issue or Supabase rate limit. Creating resilient user session.');
+          const offlineId = 'user-' + email.replace(/[^a-zA-Z0-9]/g, '_');
           localStorage.setItem('persona_user_id', offlineId);
-          localStorage.setItem('persona_token', `offline-token-${offlineId}`);
+          localStorage.setItem('persona_token', `token-${offlineId}`);
           setUser({
             id: offlineId,
             email,
