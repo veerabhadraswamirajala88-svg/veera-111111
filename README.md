@@ -227,3 +227,4 @@ This verifies:
 1. Set Root Directory to `backend`.
 2. Set Build Command to `npm run build` and Start Command to `npm start`.
 3. Add Environment Variables (`GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CLIENT_URL`).
+
