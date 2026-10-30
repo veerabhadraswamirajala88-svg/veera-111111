@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Mail, Lock, User, ArrowRight, AlertCircle } from 'lucide-react';
+import { ApiConfigModal } from '../components/ApiConfigModal';
+import { Sparkles, Mail, Lock, User, ArrowRight, AlertCircle, Server } from 'lucide-react';
 
 export const RegisterPage: React.FC = () => {
   const [fullName, setFullName] = useState('');
@@ -9,6 +10,7 @@ export const RegisterPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [configModalOpen, setConfigModalOpen] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -54,9 +56,19 @@ export const RegisterPage: React.FC = () => {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 flex items-start space-x-3 text-red-600 dark:text-red-400 text-xs">
-            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>{error}</span>
+          <div className="mb-6 p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 flex flex-col gap-2.5 text-red-600 dark:text-red-400 text-xs">
+            <div className="flex items-start space-x-2.5">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span className="flex-1">{error}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setConfigModalOpen(true)}
+              className="self-start px-2.5 py-1 rounded-lg bg-red-100 hover:bg-red-200 dark:bg-red-900/60 dark:hover:bg-red-800 text-red-700 dark:text-red-300 font-semibold text-[11px] flex items-center gap-1.5 transition-colors"
+            >
+              <Server className="w-3 h-3" />
+              Configure Backend URL
+            </button>
           </div>
         )}
 
@@ -135,7 +147,23 @@ export const RegisterPage: React.FC = () => {
             Sign in
           </Link>
         </p>
+
+        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
+          <button
+            type="button"
+            onClick={() => setConfigModalOpen(true)}
+            className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors inline-flex items-center gap-1"
+          >
+            <Server className="w-3 h-3" />
+            Backend Connection Settings
+          </button>
+        </div>
       </div>
+
+      <ApiConfigModal
+        isOpen={configModalOpen}
+        onClose={() => setConfigModalOpen(false)}
+      />
     </div>
   );
 };
