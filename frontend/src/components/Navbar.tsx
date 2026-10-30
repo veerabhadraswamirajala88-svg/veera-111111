@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { ApiConfigModal } from './ApiConfigModal';
+import { getApiBaseUrl, isProductionEnvironment, isLocalhostUrl } from '../config/api';
 import {
   Sparkles,
   Sun,
@@ -16,6 +18,7 @@ import {
   Shield,
   Layers,
   Bookmark,
+  Server,
 } from 'lucide-react';
 
 export const Navbar: React.FC<{ onToggleSidebar?: () => void }> = ({ onToggleSidebar }) => {
@@ -23,7 +26,11 @@ export const Navbar: React.FC<{ onToggleSidebar?: () => void }> = ({ onToggleSid
   const { theme, toggleTheme } = useTheme();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [apiModalOpen, setApiModalOpen] = useState(false);
   const navigate = useNavigate();
+
+  const isProd = isProductionEnvironment();
+  const isLocal = isLocalhostUrl(getApiBaseUrl());
 
   const handleLogout = async () => {
     await logout();
@@ -96,6 +103,22 @@ export const Navbar: React.FC<{ onToggleSidebar?: () => void }> = ({ onToggleSid
 
           {/* Right: Actions & User Menu */}
           <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Backend API Configuration Pill */}
+            <button
+              onClick={() => setApiModalOpen(true)}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                isProd && isLocal
+                  ? 'bg-amber-100 hover:bg-amber-200 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800 animate-pulse'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              title={`API Backend: ${getApiBaseUrl()}`}
+            >
+              <Server className="w-4 h-4" />
+              <span className="hidden sm:inline">
+                {isProd && isLocal ? 'Connect Render' : 'API'}
+              </span>
+            </button>
+
             {/* Dark / Light Toggle */}
             <button
               onClick={toggleTheme}
@@ -189,6 +212,9 @@ export const Navbar: React.FC<{ onToggleSidebar?: () => void }> = ({ onToggleSid
           </div>
         </div>
       </div>
+
+      {/* Backend API Configuration Modal */}
+      <ApiConfigModal isOpen={apiModalOpen} onClose={() => setApiModalOpen(false)} />
     </nav>
   );
 };

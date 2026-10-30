@@ -8,6 +8,7 @@ import {
   PREDEFINED_GOALS,
   BUDGET_TIERS,
 } from '../types';
+import { ApiConfigModal } from '../components/ApiConfigModal';
 import {
   Sparkles,
   ArrowRight,
@@ -61,6 +62,7 @@ export const OnboardingPage: React.FC = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [configModalOpen, setConfigModalOpen] = useState(false);
 
   const toggleInterest = (interest: string) => {
     setSelectedInterests((prev) =>
@@ -187,8 +189,15 @@ export const OnboardingPage: React.FC = () => {
         </div>
 
         {error && (
-          <div className="mx-6 sm:mx-8 mt-6 p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-xs">
-            {error}
+          <div className="mx-6 sm:mx-8 mt-6 p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex-1">{error}</div>
+            <button
+              type="button"
+              onClick={() => setConfigModalOpen(true)}
+              className="px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-900/60 hover:bg-red-200 dark:hover:bg-red-800 text-red-700 dark:text-red-300 font-semibold text-[11px] whitespace-nowrap self-start sm:self-auto"
+            >
+              Configure Backend URL
+            </button>
           </div>
         )}
 
@@ -581,6 +590,8 @@ export const OnboardingPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      <ApiConfigModal isOpen={configModalOpen} onClose={() => setConfigModalOpen(false)} />
     </div>
   );
 };

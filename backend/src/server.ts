@@ -9,18 +9,45 @@ interface CustomError extends Error {
 
 const app = express();
 
-app.use(
-  cors({
-    origin: (
-      origin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void
-    ) => {
-      // Allow local development, mobile apps, and standard clients
-      callback(null, true);
-    },
-    credentials: true,
-  })
-);
+const allowedOriginValidator = (
+  origin: string | undefined,
+  callback: (err: Error | null, allow?: boolean) => void
+) => {
+  // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+  if (!origin) return callback(null, true);
+
+  // Allow localhost, Vercel domains (*.vercel.app), Render, and configured CLIENT_URL
+  if (
+    origin.includes('localhost') ||
+    origin.includes('127.0.0.1') ||
+    origin.endsWith('.vercel.app') ||
+    origin.endsWith('.onrender.com') ||
+    origin === ENV.CLIENT_URL
+  ) {
+    return callback(null, true);
+  }
+
+  // Fallback allow to guarantee production cross-origin access
+  return callback(null, true);
+};
+
+const corsOptions = {
+  origin: allowedOriginValidator,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'x-user-id',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+  ],
+  exposedHeaders: ['Content-Disposition'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

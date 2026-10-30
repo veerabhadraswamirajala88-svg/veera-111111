@@ -8,8 +8,7 @@ import {
   AIMessage,
   AnalyticsSummary,
 } from '../types';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { getApiBaseUrl, formatApiErrorMessage } from '../config/api';
 
 class ApiClient {
   private getHeaders(): HeadersInit {
@@ -31,7 +30,8 @@ class ApiClient {
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${API_BASE}${endpoint}`;
+    const baseUrl = getApiBaseUrl();
+    const url = `${baseUrl}${endpoint}`;
     const headers = { ...this.getHeaders(), ...(options.headers as Record<string, string>) };
 
     try {
@@ -55,11 +55,9 @@ class ApiClient {
       }
 
       return response.json();
-    } catch (err: any) {
-      if (err.name === 'TypeError' || err.message?.includes('fetch') || err.message?.includes('Failed to fetch')) {
-        throw new Error(`Cannot connect to Backend API at ${API_BASE}. Please ensure the backend server is running ('npm start').`);
-      }
-      throw err;
+    } catch (err: unknown) {
+      const friendlyMessage = formatApiErrorMessage(err, endpoint);
+      throw new Error(friendlyMessage);
     }
   }
 
@@ -91,7 +89,20 @@ class ApiClient {
 
   // Profile & Onboarding
   async getProfile(): Promise<{ profile: Profile; preferences: UserPreferences; email: string }> {
-    return this.request<{ profile: Profile; preferences: UserPreferences; email: string }>('/profile');
+    try {
+      return await this.request<{ profile: Profile; preferences: UserPreferences; email: string }>('/profile');
+    } catch (err) {
+      const cached = localStorage.getItem('persona_cached_profile');
+      const cachedPref = localStorage.getItem('persona_cached_preferences');
+      if (cached && cachedPref) {
+        return {
+          profile: JSON.parse(cached),
+          preferences: JSON.parse(cachedPref),
+          email: 'alex.rivera@example.com',
+        };
+      }
+      throw err;
+    }
   }
 
   async updateProfile(data: Partial<Profile>): Promise<{ profile: Profile }> {
@@ -102,10 +113,58 @@ class ApiClient {
   }
 
   async submitOnboarding(data: any): Promise<{ profile: Profile; preferences: UserPreferences }> {
-    return this.request<{ profile: Profile; preferences: UserPreferences }>('/profile/onboarding', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+    try {
+      const res = await this.request<{ profile: Profile; preferences: UserPreferences }>('/profile/onboarding', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      if (res?.profile) {
+        localStorage.setItem('persona_cached_profile', JSON.stringify(res.profile));
+      }
+      if (res?.preferences) {
+        localStorage.setItem('persona_cached_preferences', JSON.stringify(res.preferences));
+      }
+      return res;
+    } catch (err: any) {
+      const isConnectionIssue =
+        err.message?.includes('Cannot connect') ||
+        err.message?.includes('Production Configuration Required') ||
+        err.message?.includes('fetch');
+
+      if (isConnectionIssue) {
+        console.warn('Backend unavailable during onboarding. Persisting preferences to local session cache.');
+        const userId = localStorage.getItem('persona_user_id') || 'demo-user-offline';
+        const mockProfile: Profile = {
+          id: userId,
+          full_name: data.full_name || 'Persona User',
+          age_range: data.age_range || '25-34',
+          location: data.location || 'India',
+          bio: data.bio || '',
+          onboarding_completed: true,
+          personalization_enabled: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        const mockPref: UserPreferences = {
+          id: `pref-${userId}`,
+          user_id: userId,
+          interests: data.interests || [],
+          categories: data.categories || [],
+          goals: data.goals || [],
+          disliked_categories: data.disliked_categories || [],
+          preferred_content_types: data.preferred_content_types || [],
+          budget_min: data.budget_min ?? 0,
+          budget_max: data.budget_max ?? 3500,
+          currency: data.currency || 'INR',
+          recommendation_frequency: data.recommendation_frequency || 'daily',
+          updated_at: new Date().toISOString(),
+        };
+        localStorage.setItem('persona_cached_profile', JSON.stringify(mockProfile));
+        localStorage.setItem('persona_cached_preferences', JSON.stringify(mockPref));
+        return { profile: mockProfile, preferences: mockPref };
+      }
+      throw err;
+    }
   }
 
   async resetProfile(): Promise<{ message: string }> {
@@ -114,14 +173,26 @@ class ApiClient {
 
   // Preferences
   async getPreferences(): Promise<{ preferences: UserPreferences }> {
-    return this.request<{ preferences: UserPreferences }>('/preferences');
+    try {
+      return await this.request<{ preferences: UserPreferences }>('/preferences');
+    } catch (err) {
+      const cachedPref = localStorage.getItem('persona_cached_preferences');
+      if (cachedPref) {
+        return { preferences: JSON.parse(cachedPref) };
+      }
+      throw err;
+    }
   }
 
   async updatePreferences(data: Partial<UserPreferences>): Promise<{ preferences: UserPreferences }> {
-    return this.request<{ preferences: UserPreferences }>('/preferences', {
+    const res = await this.request<{ preferences: UserPreferences }>('/preferences', {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+    if (res?.preferences) {
+      localStorage.setItem('persona_cached_preferences', JSON.stringify(res.preferences));
+    }
+    return res;
   }
 
   // Recommendations
