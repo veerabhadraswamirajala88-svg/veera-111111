@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import ws from 'ws';
 import { ENV } from '../config/env.js';
 import {
   Profile,
@@ -259,7 +260,11 @@ if (ENV.isSupabaseConfigured()) {
   try {
     supabase = createClient(
       ENV.SUPABASE_URL,
-      ENV.SUPABASE_SERVICE_ROLE_KEY || ENV.SUPABASE_ANON_KEY
+      ENV.SUPABASE_SERVICE_ROLE_KEY || ENV.SUPABASE_ANON_KEY,
+      {
+        auth: { persistSession: false },
+        realtime: { transport: ws as any },
+      }
     );
     console.log('✅ Supabase Client initialized with URL:', ENV.SUPABASE_URL);
   } catch (err) {
