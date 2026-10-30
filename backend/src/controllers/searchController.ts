@@ -4,7 +4,7 @@ import { SearchSchema } from '../types/index.js';
 import { interpretSearchQuery } from '../services/geminiService.js';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function searchRecommendations(req: Request, res: Response) {
+export async function searchRecommendations(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const validated = SearchSchema.parse(req.body);
@@ -133,28 +133,31 @@ export async function searchRecommendations(req: Request, res: Response) {
       results,
       total: results.length,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Search execution failed';
     console.error('searchRecommendations error:', error);
-    return res.status(400).json({ error: error.message || 'Search execution failed' });
+    return res.status(400).json({ error: errorMsg });
   }
 }
 
-export async function getSearchHistory(req: Request, res: Response) {
+export async function getSearchHistory(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const history = localDb.getSearchHistory(userId);
     return res.json({ history });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Failed to fetch search history' });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to fetch search history';
+    return res.status(500).json({ error: errorMsg });
   }
 }
 
-export async function clearSearchHistory(req: Request, res: Response) {
+export async function clearSearchHistory(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     localDb.clearSearchHistory(userId);
     return res.json({ message: 'Search history cleared successfully' });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Failed to clear search history' });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to clear search history';
+    return res.status(500).json({ error: errorMsg });
   }
 }

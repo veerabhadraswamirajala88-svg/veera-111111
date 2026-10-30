@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { localDb } from '../db/store.js';
 
-export async function exportUserData(req: Request, res: Response) {
+export async function exportUserData(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const profile = localDb.getProfile(userId);
@@ -38,23 +38,25 @@ export async function exportUserData(req: Request, res: Response) {
     res.setHeader('Content-Disposition', `attachment; filename="persona-ai-export-${userId}.json"`);
     res.setHeader('Content-Type', 'application/json');
     return res.json(exportPayload);
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Data export failed' });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Data export failed';
+    return res.status(500).json({ error: errorMsg });
   }
 }
 
-export async function clearUserHistory(req: Request, res: Response) {
+export async function clearUserHistory(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     localDb.clearActivity(userId);
     localDb.clearSearchHistory(userId);
     return res.json({ message: 'Activity logs and search history successfully cleared' });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Failed to clear history' });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to clear history';
+    return res.status(500).json({ error: errorMsg });
   }
 }
 
-export async function updatePrivacySettings(req: Request, res: Response) {
+export async function updatePrivacySettings(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const { personalization_enabled } = req.body;
@@ -68,7 +70,8 @@ export async function updatePrivacySettings(req: Request, res: Response) {
       message: 'Privacy settings updated successfully',
       profile: updated,
     });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Failed to update privacy settings' });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to update privacy settings';
+    return res.status(500).json({ error: errorMsg });
   }
 }

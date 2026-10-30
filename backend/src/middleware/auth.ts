@@ -15,10 +15,10 @@ declare global {
   }
 }
 
-export async function requireAuth(req: Request, res: Response, next: NextFunction) {
+export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void | Response> {
   try {
     const authHeader = req.headers.authorization;
-    const customUserId = req.headers['x-user-id'] as string;
+    const customUserId = req.headers['x-user-id'] as string | undefined;
 
     // 1. If Supabase is connected and Bearer token provided
     if (supabase && authHeader && authHeader.startsWith('Bearer ')) {
@@ -28,7 +28,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
         req.user = {
           id: user.id,
           email: user.email || 'user@example.com',
-          full_name: user.user_metadata?.full_name || 'Personalized User',
+          full_name: (user.user_metadata?.full_name as string) || 'Personalized User',
         };
         return next();
       }
@@ -82,8 +82,9 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       full_name: profile.full_name,
     };
     return next();
-  } catch (error) {
-    console.error('Auth middleware error:', error);
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Unauthorized authentication';
+    console.error('Auth middleware error:', errorMsg);
     return res.status(401).json({ error: 'Unauthorized authentication' });
   }
 }

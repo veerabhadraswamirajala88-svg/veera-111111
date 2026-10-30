@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { localDb } from '../db/store.js';
 
-export async function getAnalytics(req: Request, res: Response) {
+export async function getAnalytics(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const recommendations = localDb.listRecommendations(userId);
@@ -89,8 +89,9 @@ export async function getAnalytics(req: Request, res: Response) {
       activity_timeline: activityTimeline,
       interest_distribution: interestDistribution,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to aggregate analytics';
     console.error('getAnalytics error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to aggregate analytics' });
+    return res.status(500).json({ error: errorMsg });
   }
 }

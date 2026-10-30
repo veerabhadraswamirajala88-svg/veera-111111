@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { localDb } from '../db/store.js';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function logActivity(req: Request, res: Response) {
+export async function logActivity(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const { activity_type, recommendation_id, category, metadata } = req.body;
@@ -22,18 +22,20 @@ export async function logActivity(req: Request, res: Response) {
     });
 
     return res.status(201).json({ activity: recorded });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Failed to record activity' });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to record activity';
+    return res.status(500).json({ error: errorMsg });
   }
 }
 
-export async function getActivityHistory(req: Request, res: Response) {
+export async function getActivityHistory(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
     const activities = localDb.getActivity(userId, limit);
     return res.json({ activities });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Failed to fetch activity history' });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to fetch activity history';
+    return res.status(500).json({ error: errorMsg });
   }
 }

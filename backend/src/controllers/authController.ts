@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { supabase, localDb } from '../db/store.js';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function register(req: Request, res: Response) {
+export async function register(req: Request, res: Response): Promise<Response> {
   try {
     const { email, password, full_name } = req.body;
     if (!email || !password) {
@@ -86,13 +86,14 @@ export async function register(req: Request, res: Response) {
       session: { access_token: `mock-token-${userId}`, user: { id: userId, email } },
       message: 'Registration successful (Local mode)',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Internal registration error';
     console.error('Registration error:', error);
-    return res.status(500).json({ error: error.message || 'Internal registration error' });
+    return res.status(500).json({ error: errorMsg });
   }
 }
 
-export async function login(req: Request, res: Response) {
+export async function login(req: Request, res: Response): Promise<Response> {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -135,24 +136,26 @@ export async function login(req: Request, res: Response) {
       session: { access_token: `mock-token-${userId}`, user: { id: userId, email } },
       message: 'Login successful',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Internal login error';
     console.error('Login error:', error);
-    return res.status(500).json({ error: error.message || 'Internal login error' });
+    return res.status(500).json({ error: errorMsg });
   }
 }
 
-export async function logout(req: Request, res: Response) {
+export async function logout(req: Request, res: Response): Promise<Response> {
   try {
     if (supabase) {
       await supabase.auth.signOut();
     }
     return res.status(200).json({ message: 'Logged out successfully' });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Logout error' });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Logout error';
+    return res.status(500).json({ error: errorMsg });
   }
 }
 
-export async function forgotPassword(req: Request, res: Response) {
+export async function forgotPassword(req: Request, res: Response): Promise<Response> {
   try {
     const { email } = req.body;
     if (!email) {
@@ -171,7 +174,8 @@ export async function forgotPassword(req: Request, res: Response) {
     return res.status(200).json({
       message: 'Password reset link sent to your email address.',
     });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Error sending reset password link' });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Error sending reset password link';
+    return res.status(500).json({ error: errorMsg });
   }
 }

@@ -4,27 +4,29 @@ import { ChatMessageSchema } from '../types/index.js';
 import { chatWithAssistantGemini } from '../services/geminiService.js';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function listConversations(req: Request, res: Response) {
+export async function listConversations(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const conversations = localDb.listConversations(userId);
     return res.json({ conversations });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Failed to list conversations' });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to list conversations';
+    return res.status(500).json({ error: errorMsg });
   }
 }
 
-export async function getConversationMessages(req: Request, res: Response) {
+export async function getConversationMessages(req: Request, res: Response): Promise<Response> {
   try {
     const conversationId = req.params.id;
     const messages = localDb.getMessages(conversationId);
     return res.json({ messages });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Failed to fetch messages' });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to fetch messages';
+    return res.status(500).json({ error: errorMsg });
   }
 }
 
-export async function sendMessage(req: Request, res: Response) {
+export async function sendMessage(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const { conversation_id, message } = ChatMessageSchema.parse(req.body);
@@ -126,8 +128,9 @@ export async function sendMessage(req: Request, res: Response) {
       user_message: userMsg,
       assistant_message: assistantMsg,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to send message';
     console.error('sendMessage error:', error);
-    return res.status(400).json({ error: error.message || 'Failed to send message' });
+    return res.status(400).json({ error: errorMsg });
   }
 }

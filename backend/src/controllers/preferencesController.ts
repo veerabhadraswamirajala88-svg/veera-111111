@@ -4,7 +4,7 @@ import { UpdatePreferencesSchema } from '../types/index.js';
 import { generateRecommendationsWithGemini } from '../services/geminiService.js';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function getPreferences(req: Request, res: Response) {
+export async function getPreferences(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     let preferences = localDb.getPreferences(userId);
@@ -25,13 +25,14 @@ export async function getPreferences(req: Request, res: Response) {
       });
     }
     return res.json({ preferences });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to fetch preferences';
     console.error('getPreferences error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to fetch preferences' });
+    return res.status(500).json({ error: errorMsg });
   }
 }
 
-export async function updatePreferences(req: Request, res: Response) {
+export async function updatePreferences(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const validated = UpdatePreferencesSchema.parse(req.body);
@@ -78,8 +79,9 @@ export async function updatePreferences(req: Request, res: Response) {
       message: 'Preferences updated and recommendations regenerated dynamically',
       preferences: updated,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Invalid preferences data';
     console.error('updatePreferences error:', error);
-    return res.status(400).json({ error: error.message || 'Invalid preferences data' });
+    return res.status(400).json({ error: errorMsg });
   }
 }

@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import { localDb } from '../db/store.js';
-import { FeedbackSchema, Category } from '../types/index.js';
+import { FeedbackSchema } from '../types/index.js';
 import { generateRecommendationsWithGemini } from '../services/geminiService.js';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function getRecommendations(req: Request, res: Response) {
+export async function getRecommendations(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const category = req.query.category as string | undefined;
@@ -97,13 +97,14 @@ export async function getRecommendations(req: Request, res: Response) {
     }
 
     return res.json({ recommendations: enriched });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to fetch recommendations';
     console.error('getRecommendations error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to fetch recommendations' });
+    return res.status(500).json({ error: errorMsg });
   }
 }
 
-export async function generateNewRecommendations(req: Request, res: Response) {
+export async function generateNewRecommendations(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const profile = localDb.getProfile(userId);
@@ -132,13 +133,14 @@ export async function generateNewRecommendations(req: Request, res: Response) {
       message: 'New personalized recommendations generated successfully',
       recommendations: freshRecs,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to generate recommendations';
     console.error('generateNewRecommendations error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to generate recommendations' });
+    return res.status(500).json({ error: errorMsg });
   }
 }
 
-export async function getSavedRecommendations(req: Request, res: Response) {
+export async function getSavedRecommendations(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const userFeedback = localDb.getFeedbackForUser(userId);
@@ -155,12 +157,13 @@ export async function getSavedRecommendations(req: Request, res: Response) {
       }));
 
     return res.json({ saved });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Failed to fetch saved items' });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to fetch saved items';
+    return res.status(500).json({ error: errorMsg });
   }
 }
 
-export async function submitFeedback(req: Request, res: Response) {
+export async function submitFeedback(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const recommendationId = req.params.id;
@@ -191,13 +194,14 @@ export async function submitFeedback(req: Request, res: Response) {
     });
 
     return res.json({ message: 'Feedback recorded', feedback: saved });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to record feedback';
     console.error('submitFeedback error:', error);
-    return res.status(400).json({ error: error.message || 'Failed to record feedback' });
+    return res.status(400).json({ error: errorMsg });
   }
 }
 
-export async function removeFeedback(req: Request, res: Response) {
+export async function removeFeedback(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const recommendationId = req.params.id;
@@ -216,7 +220,8 @@ export async function removeFeedback(req: Request, res: Response) {
     });
 
     return res.json({ message: 'Feedback removed successfully' });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Failed to remove feedback' });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to remove feedback';
+    return res.status(500).json({ error: errorMsg });
   }
 }

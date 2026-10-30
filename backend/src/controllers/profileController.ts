@@ -4,7 +4,7 @@ import { OnboardingSchema, UpdateProfileSchema } from '../types/index.js';
 import { generateRecommendationsWithGemini } from '../services/geminiService.js';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function getProfile(req: Request, res: Response) {
+export async function getProfile(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     let profile = localDb.getProfile(userId);
@@ -39,13 +39,14 @@ export async function getProfile(req: Request, res: Response) {
     }
 
     return res.json({ profile, preferences, email: req.user!.email });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to fetch profile';
     console.error('getProfile error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to fetch profile' });
+    return res.status(500).json({ error: errorMsg });
   }
 }
 
-export async function updateProfile(req: Request, res: Response) {
+export async function updateProfile(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const validated = UpdateProfileSchema.parse(req.body);
@@ -65,13 +66,14 @@ export async function updateProfile(req: Request, res: Response) {
     });
 
     return res.json({ profile: updated });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Invalid profile data';
     console.error('updateProfile error:', error);
-    return res.status(400).json({ error: error.message || 'Invalid profile data' });
+    return res.status(400).json({ error: errorMsg });
   }
 }
 
-export async function submitOnboarding(req: Request, res: Response) {
+export async function submitOnboarding(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     const validated = OnboardingSchema.parse(req.body);
@@ -129,13 +131,14 @@ export async function submitOnboarding(req: Request, res: Response) {
       preferences,
       initial_recommendations_count: freshRecs.length,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Onboarding validation failed';
     console.error('submitOnboarding error:', error);
-    return res.status(400).json({ error: error.message || 'Onboarding validation failed' });
+    return res.status(400).json({ error: errorMsg });
   }
 }
 
-export async function resetProfile(req: Request, res: Response) {
+export async function resetProfile(req: Request, res: Response): Promise<Response> {
   try {
     const userId = req.user!.id;
     localDb.updateProfile(userId, { onboarding_completed: false });
@@ -144,7 +147,8 @@ export async function resetProfile(req: Request, res: Response) {
     localDb.clearSearchHistory(userId);
 
     return res.json({ message: 'Profile personalization reset successfully' });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Reset failed' });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Reset failed';
+    return res.status(500).json({ error: errorMsg });
   }
 }
